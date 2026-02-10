@@ -1,0 +1,2082 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Access - Sistema de Gestión de Ventas</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            overflow-x: hidden;
+        }
+
+        .access-window {
+            max-width: 1600px;
+            margin: 20px auto;
+            background: #2a2a2a;
+            border: 1px solid #c92a2a;
+            box-shadow: 0 0 30px rgba(201, 42, 42, 0.3);
+        }
+
+        .title-bar {
+            background: linear-gradient(180deg, #c92a2a 0%, #a61e1e 100%);
+            color: white;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #8a1515;
+        }
+
+        .title-bar h1 {
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .window-controls button {
+            width: 25px;
+            height: 25px;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 3px;
+        }
+
+        .window-controls button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .ribbon {
+            background: #1f1f1f;
+            border-bottom: 2px solid #c92a2a;
+            padding: 20px 30px;
+        }
+
+        .instructions-header {
+            margin-bottom: 15px;
+        }
+
+        .instructions-header h2 {
+            color: #c92a2a;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .instructions-header h3 {
+            color: #e0e0e0;
+            font-size: 16px;
+            font-weight: normal;
+            margin-bottom: 15px;
+        }
+
+        .instructions-content {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 5px;
+            padding: 15px 20px;
+        }
+
+        .instructions-content p {
+            color: #b0b0b0;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .instructions-content strong {
+            color: #c92a2a;
+        }
+
+        .main-container {
+            display: flex;
+            height: calc(100vh - 200px);
+            min-height: 600px;
+        }
+
+        .navigation-pane {
+            width: 250px;
+            background: #1f1f1f;
+            border-right: 2px solid #c92a2a;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .nav-section {
+            margin-bottom: 20px;
+        }
+
+        .nav-section h3 {
+            color: #c92a2a;
+            font-size: 13px;
+            margin-bottom: 8px;
+            padding: 5px 0;
+            border-bottom: 1px solid #444;
+        }
+
+        .nav-item {
+            padding: 8px 10px;
+            margin: 3px 0;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            border-radius: 3px;
+        }
+
+        .nav-item:hover {
+            background: #3a3a3a;
+            border-color: #c92a2a;
+        }
+
+        .nav-item.active {
+            background: #c92a2a;
+            border-color: #c92a2a;
+            color: white;
+            font-weight: 600;
+        }
+
+        .nav-item::before {
+            content: "📋";
+            font-size: 14px;
+        }
+
+        .work-area {
+            flex: 1;
+            background: #2a2a2a;
+            overflow-y: auto;
+        }
+
+        .table-design-view {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .table-design-view.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        .design-header {
+            background: #1f1f1f;
+            padding: 15px 20px;
+            border-bottom: 2px solid #c92a2a;
+        }
+
+        .design-header h2 {
+            color: #c92a2a;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .design-header p {
+            color: #999;
+            font-size: 12px;
+        }
+
+        .table-instructions {
+            background: #3a3a3a;
+            border: 1px solid #c92a2a;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+
+        .table-instructions h4 {
+            color: #c92a2a;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .table-instructions ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .table-instructions li {
+            color: #e0e0e0;
+            font-size: 13px;
+            line-height: 1.8;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .table-instructions li::before {
+            content: "▸";
+            color: #c92a2a;
+            position: absolute;
+            left: 0;
+        }
+
+        .design-grid {
+            background: #2a2a2a;
+        }
+
+        .grid-header {
+            display: grid;
+            grid-template-columns: 200px 150px 1fr;
+            background: #c92a2a;
+            color: white;
+            font-weight: 600;
+            font-size: 13px;
+            padding: 10px;
+            border-bottom: 2px solid #8a1515;
+        }
+
+        .grid-row {
+            display: grid;
+            grid-template-columns: 200px 150px 1fr;
+            border-bottom: 1px solid #444;
+            min-height: 40px;
+            align-items: center;
+            padding: 5px 10px;
+            background: #2a2a2a;
+            transition: background 0.2s;
+        }
+
+        .grid-row:hover {
+            background: #333;
+        }
+
+        .grid-row.selected {
+            background: #3a3a3a;
+            border-left: 3px solid #c92a2a;
+        }
+
+        .grid-cell {
+            padding: 5px;
+            color: #e0e0e0;
+            font-size: 12px;
+        }
+
+        .field-properties {
+            background: #1f1f1f;
+            border-top: 2px solid #c92a2a;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .properties-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #444;
+        }
+
+        .property-tab {
+            padding: 8px 20px;
+            background: transparent;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 12px;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .property-tab.active {
+            color: #c92a2a;
+            border-bottom-color: #c92a2a;
+        }
+
+        .properties-grid {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 1px;
+            background: #444;
+        }
+
+        .property-row {
+            display: contents;
+        }
+
+        .property-label {
+            background: #2a2a2a;
+            padding: 8px 12px;
+            font-size: 12px;
+            color: #e0e0e0;
+            border-right: 1px solid #444;
+        }
+
+        .property-value {
+            background: #1a1a1a;
+            padding: 5px 8px;
+        }
+
+        .property-value input,
+        .property-value select,
+        .property-value textarea {
+            width: 100%;
+            background: #333;
+            border: 1px solid #555;
+            color: #e0e0e0;
+            padding: 5px 8px;
+            font-size: 12px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            border-radius: 3px;
+        }
+
+        .property-value input:focus,
+        .property-value select:focus,
+        .property-value textarea:focus {
+            outline: none;
+            border-color: #c92a2a;
+            background: #3a3a3a;
+        }
+
+        .property-value textarea {
+            resize: vertical;
+            min-height: 50px;
+        }
+
+        .test-section {
+            background: #1f1f1f;
+            margin: 20px;
+            padding: 20px;
+            border: 2px solid #c92a2a;
+            border-radius: 5px;
+        }
+
+        .test-section h3 {
+            color: #c92a2a;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .test-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .test-field {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .test-field label {
+            color: #e0e0e0;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .test-field input {
+            background: #2a2a2a;
+            border: 1px solid #555;
+            color: #e0e0e0;
+            padding: 8px 10px;
+            font-size: 12px;
+            border-radius: 3px;
+        }
+
+        .test-field input:focus {
+            outline: none;
+            border-color: #c92a2a;
+        }
+
+        .test-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .test-btn {
+            padding: 10px 20px;
+            background: #c92a2a;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 3px;
+            transition: all 0.2s;
+        }
+
+        .test-btn:hover {
+            background: #a61e1e;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(201, 42, 42, 0.4);
+        }
+
+        .test-btn.secondary {
+            background: #444;
+        }
+
+        .test-btn.secondary:hover {
+            background: #555;
+        }
+
+        .save-validation-btn {
+            padding: 10px 20px;
+            background: #2f9e44;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 3px;
+            transition: all 0.2s;
+            margin: 15px 0;
+            width: 100%;
+        }
+
+        .save-validation-btn:hover {
+            background: #2b8a3e;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(47, 158, 68, 0.4);
+        }
+
+        .save-validation-btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .validation-message {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 3px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .validation-message.show {
+            display: block;
+        }
+
+        .validation-message.error {
+            background: #c92a2a;
+            border: 1px solid #a61e1e;
+            color: white;
+        }
+
+        .validation-message.success {
+            background: #2f9e44;
+            border: 1px solid #2b8a3e;
+            color: white;
+        }
+
+        .validation-message h4 {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .validation-message p {
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .status-bar {
+            background: #1f1f1f;
+            padding: 8px 15px;
+            border-top: 2px solid #c92a2a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: #999;
+        }
+
+        .progress-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .progress-bar {
+            width: 200px;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #c92a2a;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .final-actions {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .action-btn {
+            padding: 15px 30px;
+            background: #c92a2a;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 5px;
+            box-shadow: 0 4px 15px rgba(201, 42, 42, 0.4);
+            transition: all 0.3s;
+        }
+
+        .action-btn:hover {
+            background: #a61e1e;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(201, 42, 42, 0.6);
+        }
+
+        .action-btn.pdf {
+            background: #1f1f1f;
+            border: 2px solid #c92a2a;
+            display: none;
+        }
+
+        .action-btn.pdf:hover {
+            background: #2a2a2a;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            background: #2a2a2a;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 2px solid #c92a2a;
+            box-shadow: 0 0 40px rgba(201, 42, 42, 0.5);
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .modal-header h2 {
+            color: #c92a2a;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .score-display {
+            text-align: center;
+            padding: 40px;
+            background: linear-gradient(135deg, #c92a2a 0%, #8a1515 100%);
+            color: white;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .score-display .score {
+            font-size: 64px;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+
+        .score-display .grade {
+            font-size: 28px;
+            margin-top: 10px;
+        }
+
+        .results-grid {
+            display: grid;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #1f1f1f;
+            border-left: 4px solid #555;
+            border-radius: 3px;
+        }
+
+        .result-item.correct {
+            border-left-color: #2f9e44;
+            background: rgba(47, 158, 68, 0.1);
+        }
+
+        .result-item.incorrect {
+            border-left-color: #c92a2a;
+            background: rgba(201, 42, 42, 0.1);
+        }
+
+        .result-item span {
+            font-size: 14px;
+        }
+
+        .result-icon {
+            font-size: 24px;
+        }
+
+        .modal-footer {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .close-btn {
+            padding: 12px 40px;
+            background: #444;
+            color: white;
+            border: 1px solid #666;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 3px;
+            width: 100%;
+        }
+
+        .close-btn:hover {
+            background: #555;
+        }
+
+        .help-text {
+            background: rgba(201, 42, 42, 0.1);
+            border: 1px solid #c92a2a;
+            padding: 10px;
+            border-radius: 3px;
+            font-size: 11px;
+            color: #ff8787;
+            margin-top: 10px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c92a2a;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a61e1e;
+        }
+    </style>
+</head>
+<body>
+    <div class="access-window">
+        <div class="title-bar">
+            <h1>
+                <span>🗄️</span>
+                Microsoft Access - Sistema de Gestión de Ventas : Base de datos (Formato de Access 2007-2016)
+            </h1>
+            <div class="window-controls">
+                <button>─</button>
+                <button>□</button>
+                <button>✕</button>
+            </div>
+        </div>
+
+        <div class="ribbon">
+            <div class="instructions-header">
+                <h2>Simulador de Validaciones de Base de Datos</h2>
+                <h3>Sistema de Gestión de Ventas - Práctica de Validaciones en Access</h3>
+            </div>
+            <div class="instructions-content">
+                <p><strong>📋 Instrucciones:</strong></p>
+                <p>En este simulador, aprenderás a implementar validaciones en una base de datos de Access. Completa las tres pestañas: <strong>Productos</strong>, <strong>Clientes</strong> y <strong>Ventas</strong>. Para cada validación, debes configurar las reglas correctamente y probar que funcionen ingresando datos inválidos.</p>
+            </div>
+        </div>
+
+        <div class="main-container">
+            <div class="navigation-pane">
+                <div class="nav-section">
+                    <h3>▼ Tablas</h3>
+                    <div class="nav-item active" onclick="showTable('productos')">
+                        Productos
+                    </div>
+                    <div class="nav-item" onclick="showTable('clientes')">
+                        Clientes
+                    </div>
+                    <div class="nav-item" onclick="showTable('ventas')">
+                        Ventas
+                    </div>
+                    <div class="nav-item" onclick="showTable('detalle')">
+                        Detalle_Ventas
+                    </div>
+                </div>
+            </div>
+
+            <div class="work-area">
+                <!-- TABLA PRODUCTOS -->
+                <div id="table-productos" class="table-design-view active">
+                    <div class="design-header">
+                        <h2>Productos : Tabla</h2>
+                        <p>Vista Diseño - Configure las propiedades y validaciones de los campos</p>
+                        <div class="table-instructions">
+                            <h4>📝 Instrucciones para esta tabla:</h4>
+                            <ul>
+                                <li><strong>Precio > 0:</strong> Regla: >0, Mensaje: 'El precio debe ser mayor a cero'</li>
+                                <li><strong>Stock >= 0:</strong> Regla: >=0, Mensaje: 'El stock no puede ser negativo'</li>
+                                <li><strong>Código único:</strong> Propiedad: Sin duplicados</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="design-grid">
+                        <div class="grid-header">
+                            <div>Nombre del campo</div>
+                            <div>Tipo de datos</div>
+                            <div>Descripción (opcional)</div>
+                        </div>
+                        <div class="grid-row" onclick="selectField('productos', 'id')">
+                            <div class="grid-cell">ID_Producto</div>
+                            <div class="grid-cell">Autonumeración</div>
+                            <div class="grid-cell">Identificador único del producto</div>
+                        </div>
+                        <div class="grid-row" onclick="selectField('productos', 'codigo')">
+                            <div class="grid-cell">Codigo</div>
+                            <div class="grid-cell">Texto corto</div>
+                            <div class="grid-cell">Código del producto</div>
+                        </div>
+                        <div class="grid-row" onclick="selectField('productos', 'nombre')">
+                            <div class="grid-cell">Nombre</div>
+                            <div class="grid-cell">Texto corto</div>
+                            <div class="grid-cell">Nombre del producto</div>
+                        </div>
+                        <div class="grid-row" onclick="selectField('productos', 'precio')">
+                            <div class="grid-cell">Precio</div>
+                            <div class="grid-cell">Moneda</div>
+                            <div class="grid-cell">Precio unitario del producto</div>
+                        </div>
+                        <div class="grid-row" onclick="selectField('productos', 'stock')">
+                            <div class="grid-cell">Stock</div>
+                            <div class="grid-cell">Número</div>
+                            <div class="grid-cell">Cantidad en inventario</div>
+                        </div>
+                    </div>
+
+                    <div class="field-properties" id="props-productos">
+                        <div class="properties-tabs">
+                            <button class="property-tab active">General</button>
+                            <button class="property-tab">Búsqueda</button>
+                        </div>
+                        <p style="color: #999; font-size: 11px; margin-bottom: 10px;">Seleccione un campo para ver sus propiedades</p>
+                    </div>
+                    
+                    <button class="save-validation-btn" onclick="saveValidationProductos()" id="save-btn-productos" style="display: none;">
+                        💾 Guardar Validación
+                    </button>
+
+                    <div class="test-section">
+                        <h3>🧪 Probar Validaciones de Productos</h3>
+                        <div class="test-form">
+                            <div class="test-field">
+                                <label>Código:</label>
+                                <input type="text" id="test-prod-codigo">
+                            </div>
+                            <div class="test-field">
+                                <label>Nombre:</label>
+                                <input type="text" id="test-prod-nombre">
+                            </div>
+                            <div class="test-field">
+                                <label>Precio:</label>
+                                <input type="number" step="0.01" id="test-prod-precio">
+                            </div>
+                            <div class="test-field">
+                                <label>Stock:</label>
+                                <input type="number" id="test-prod-stock">
+                            </div>
+                        </div>
+                        <div class="test-buttons">
+                            <button class="test-btn" onclick="testProductos()">✓ Validar Datos</button>
+                            <button class="test-btn secondary" onclick="clearProductos()">✕ Limpiar</button>
+                        </div>
+                        <div class="validation-message" id="msg-productos"></div>
+                    </div>
+                </div>
+
+                <!-- TABLA CLIENTES -->
+                <div id="table-clientes" class="table-design-view">
+                    <div class="design-header">
+                        <h2>Clientes : Tabla</h2>
+                        <p>Vista Diseño - Configure las propiedades y validaciones de los campos</p>
+                        <div class="table-instructions">
+                            <h4>📝 Instrucciones para esta tabla:</h4>
+                            <ul>
+                                <li><strong>Formato de email:</strong> Máscara de entrada</li>
+                                <li><strong>Teléfono con formato específico:</strong> Máscara: (###) ###-####</li>
+                                <li><strong>Campos obligatorios:</strong> Nombre y Email - Propiedad: Requerido = Sí</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="design-grid">
+                        <div class="grid-header">
+                            <div>Nombre del campo</div>
+                            <div>Tipo de datos</div>
+                            <div>Descripción (opcional)</div>
+                        </div>
+                        <div class="grid-row" onclick="selectField('clientes', 'id')">
+                            <div class="grid-cell">ID_Cliente</div>
+                            <div class="grid-cell">Autonumeración</div>
+                            <div class="grid-cell">Identificador único del cliente</div>
+                        </div>
+                        <div class="grid-row" onclick="selectField('clientes', 'nombre')">
+                            <div class="grid-cell">Nombre</div>
+                            <div class="grid-cell">Texto corto</div>
+                            <div class="grid-cell">Nombre completo del cliente</div>
+                        </div>
+                        <div class="grid-row" onclick="selectField('clientes', 'apellido')">
+                            <div class="grid-cell">Apellido</div>
+                            <div class="grid-cell">Texto corto</div>
+                            <div class="grid-cell">Apellido del cliente</div>
+                        </div>
+                        <div class="grid-row" onclick="selectField('clientes', 'email')">
+                            <div class="grid-cell">Email</div>
+                            <div class="grid-cell">Texto corto</div>
+                            <div class="grid-cell">Correo electrónico del cliente</div>
+                        </div>
+                        <div class="grid-row" onclick="selectField('clientes', 'telefono')">
+                            <div class="grid-cell">Telefono</div>
+                            <div class="grid-cell">Texto corto</div>
+                            <div class="grid-cell">Número de teléfono</div>
+                        </div>
+                        <div class="grid-row" onclick="selectField('clientes', 'direccion')">
+                            <div class="grid-cell">Direccion</div>
+                            <div class="grid-cell">Texto corto</div>
+                            <div class="grid-cell">Dirección del cliente</div>
+                        </div>
+                    </div>
+
+                    <div class="field-properties" id="props-clientes">
+                        <div class="properties-tabs">
+                            <button class="property-tab active">General</button>
+                            <button class="property-tab">Búsqueda</button>
+                        </div>
+                        <p style="color: #999; font-size: 11px; margin-bottom: 10px;">Seleccione un campo para ver sus propiedades</p>
+                    </div>
+                    
+                    <button class="save-validation-btn" onclick="saveValidationClientes()" id="save-btn-clientes" style="display: none;">
+                        💾 Guardar Validación
+                    </button>
+
+                    <div class="test-section">
+                        <h3>🧪 Probar Validaciones de Clientes</h3>
+                        <div class="test-form">
+                            <div class="test-field">
+                                <label>Nombre:</label>
+                                <input type="text" id="test-cli-nombre">
+                            </div>
+                            <div class="test-field">
+                                <label>Apellido:</label>
+                                <input type="text" id="test-cli-apellido">
+                            </div>
+                            <div class="test-field">
+                                <label>Email:</label>
+                                <input type="text" id="test-cli-email">
+                            </div>
+                            <div class="test-field">
+                                <label>Teléfono:</label>
+                                <input type="text" id="test-cli-telefono">
+                            </div>
+                        </div>
+                        <div class="test-buttons">
+                            <button class="test-btn" onclick="testClientes()">✓ Validar Datos</button>
+                            <button class="test-btn secondary" onclick="clearClientes()">✕ Limpiar</button>
+                        </div>
+                        <div class="validation-message" id="msg-clientes"></div>
+                    </div>
+                </div>
+
+                <!-- TABLA VENTAS -->
+                <div id="table-ventas" class="table-design-view">
+                    <div class="design-header">
+                        <h2>Ventas : Tabla</h2>
+                        <p>Vista Diseño - Configure las propiedades y validaciones de los campos</p>
+                        <div class="table-instructions">
+                            <h4>📝 Instrucciones para esta tabla:</h4>
+                            <ul>
+                                <li><strong>Fecha <= fecha actual:</strong> Regla: <=Date(), Mensaje: 'No puede registrar ventas futuras'</li>
+                                <li><strong>Total > 0:</strong> Regla: >0</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="design-grid">
+                        <div class="grid-header">
+                            <div>Nombre del campo</div>
+                            <div>Tipo de datos</div>
+                            <div>Descripción (opcional)</div>
+                        </div>
+                        <div class="grid-row" onclick="selectField('ventas', 'id')">
+                            <div class="grid-cell">ID_Venta</div>
+                            <div class="grid-cell">Autonumeración</div>
+                            <div class="grid-cell">Identificador único de la venta</div>
+                        </div>
+                        <div class="grid-row" onclick="selectField('ventas', 'fecha')">
+                            <div class="grid-cell">Fecha</div>
+                            <div class="grid-cell">Fecha/Hora</div>
+                            <div class="grid-cell">Fecha de la venta</div>
+                        </div>
+                        <div class="grid-row" onclick="selectField('ventas', 'cliente')">
+                            <div class="grid-cell">ID_Cliente</div>
+                            <div class="grid-cell">Número</div>
+                            <div class="grid-cell">Cliente que realizó la compra</div>
+                        </div>
+                        <div class="grid-row" onclick="selectField('ventas', 'total')">
+                            <div class="grid-cell">Total</div>
+                            <div class="grid-cell">Moneda</div>
+                            <div class="grid-cell">Total de la venta</div>
+                        </div>
+                    </div>
+
+                    <div class="field-properties" id="props-ventas">
+                        <div class="properties-tabs">
+                            <button class="property-tab active">General</button>
+                            <button class="property-tab">Búsqueda</button>
+                        </div>
+                        <p style="color: #999; font-size: 11px; margin-bottom: 10px;">Seleccione un campo para ver sus propiedades</p>
+                    </div>
+                    
+                    <button class="save-validation-btn" onclick="saveValidationVentas()" id="save-btn-ventas" style="display: none;">
+                        💾 Guardar Validación
+                    </button>
+
+                    <div class="test-section">
+                        <h3>🧪 Probar Validaciones de Ventas</h3>
+                        <div class="test-form">
+                            <div class="test-field">
+                                <label>Fecha:</label>
+                                <input type="date" id="test-ven-fecha">
+                            </div>
+                            <div class="test-field">
+                                <label>Total:</label>
+                                <input type="number" step="0.01" id="test-ven-total">
+                            </div>
+                        </div>
+                        <div class="test-buttons">
+                            <button class="test-btn" onclick="testVentas()">✓ Validar Datos</button>
+                            <button class="test-btn secondary" onclick="clearVentas()">✕ Limpiar</button>
+                        </div>
+                        <div class="validation-message" id="msg-ventas"></div>
+                    </div>
+                </div>
+
+                <!-- TABLA DETALLE (Solo vista) -->
+                <div id="table-detalle" class="table-design-view">
+                    <div class="design-header">
+                        <h2>Detalle_Ventas : Tabla</h2>
+                        <p>Vista Diseño - Tabla de referencia (sin validaciones requeridas)</p>
+                    </div>
+
+                    <div class="design-grid">
+                        <div class="grid-header">
+                            <div>Nombre del campo</div>
+                            <div>Tipo de datos</div>
+                            <div>Descripción (opcional)</div>
+                        </div>
+                        <div class="grid-row">
+                            <div class="grid-cell">ID_Detalle</div>
+                            <div class="grid-cell">Autonumeración</div>
+                            <div class="grid-cell">Identificador único del detalle</div>
+                        </div>
+                        <div class="grid-row">
+                            <div class="grid-cell">ID_Venta</div>
+                            <div class="grid-cell">Número</div>
+                            <div class="grid-cell">Referencia a la venta</div>
+                        </div>
+                        <div class="grid-row">
+                            <div class="grid-cell">ID_Producto</div>
+                            <div class="grid-cell">Número</div>
+                            <div class="grid-cell">Producto vendido</div>
+                        </div>
+                        <div class="grid-row">
+                            <div class="grid-cell">Cantidad</div>
+                            <div class="grid-cell">Número</div>
+                            <div class="grid-cell">Cantidad vendida</div>
+                        </div>
+                        <div class="grid-row">
+                            <div class="grid-cell">Precio_Unitario</div>
+                            <div class="grid-cell">Moneda</div>
+                            <div class="grid-cell">Precio al momento de la venta</div>
+                        </div>
+                    </div>
+
+                    <div style="padding: 30px; text-align: center; color: #999;">
+                        <p>Esta tabla no requiere validaciones específicas para esta práctica.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <div class="progress-indicator">
+                <span>Progreso de validaciones:</span>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="mainProgress"></div>
+                </div>
+                <span id="progressText">0/8 completadas</span>
+            </div>
+            <div>Vista: Diseño de tabla</div>
+        </div>
+    </div>
+
+    <div class="final-actions">
+        <button class="action-btn" onclick="showResults()">📊 Ver Calificación</button>
+        <button class="action-btn pdf" id="pdfBtn" onclick="generatePDF()">📄 Descargar PDF</button>
+    </div>
+
+    <div class="modal" id="resultsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Resultados de la Evaluación</h2>
+                <p style="color: #999;">Sistema de Gestión de Ventas - Validaciones de Base de Datos</p>
+            </div>
+
+            <div class="score-display">
+                <div style="font-size: 18px;">Calificación Final</div>
+                <div class="score" id="finalScore">0</div>
+                <div class="grade" id="finalGrade">-</div>
+            </div>
+
+            <div class="results-grid" id="resultsGrid"></div>
+
+            <div class="modal-footer">
+                <button class="close-btn" onclick="closeModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Estado de validaciones
+        const validations = {
+            productos: {
+                precio: { rule: '', message: '', tested: false },
+                stock: { rule: '', message: '', tested: false },
+                codigo: { indexed: '', tested: false }
+            },
+            clientes: {
+                email: { inputMask: '', tested: false },
+                telefono: { inputMask: '', tested: false },
+                nombre: { required: false, tested: false },
+                email_required: { required: false, tested: false }
+            },
+            ventas: {
+                fecha: { rule: '', message: '', tested: false },
+                total: { rule: '', message: '', tested: false }
+            }
+        };
+
+        let currentTable = 'productos';
+        let currentField = null;
+
+        // Códigos de productos ya registrados (simulación)
+        const existingCodes = ['PROD001', 'PROD002'];
+
+        function showTable(tableName) {
+            currentTable = tableName;
+            
+            // Actualizar navegación
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Mostrar tabla correspondiente
+            document.querySelectorAll('.table-design-view').forEach(view => {
+                view.classList.remove('active');
+            });
+            document.getElementById('table-' + tableName).classList.add('active');
+        }
+
+        function selectField(table, field) {
+            currentField = field;
+            
+            // Marcar fila seleccionada
+            const rows = document.querySelectorAll(`#table-${table} .grid-row`);
+            rows.forEach(row => row.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+            
+            // Mostrar propiedades según el campo
+            showFieldProperties(table, field);
+            
+            // Mostrar botón de guardar validación para campos que lo requieren
+            const saveBtn = document.getElementById(`save-btn-${table}`);
+            if (saveBtn) {
+                const fieldsWithValidation = {
+                    'productos': ['precio', 'stock', 'codigo'],
+                    'clientes': ['email', 'telefono', 'nombre'],
+                    'ventas': ['fecha', 'total']
+                };
+                
+                if (fieldsWithValidation[table] && fieldsWithValidation[table].includes(field)) {
+                    saveBtn.style.display = 'block';
+                } else {
+                    saveBtn.style.display = 'none';
+                }
+            }
+        }
+
+        function showFieldProperties(table, field) {
+            const propsDiv = document.getElementById('props-' + table);
+            let html = `
+                <div class="properties-tabs">
+                    <button class="property-tab active">General</button>
+                    <button class="property-tab">Búsqueda</button>
+                </div>
+                <div class="properties-grid">
+            `;
+
+            if (table === 'productos' && field === 'precio') {
+                html += `
+                    <div class="property-row">
+                        <div class="property-label">Tamaño del campo</div>
+                        <div class="property-value"><input type="text" value="Entero largo" readonly></div>
+                    </div>
+                    <div class="property-row">
+                        <div class="property-label">Formato</div>
+                        <div class="property-value"><input type="text"></div>
+                    </div>
+                    <div class="property-row">
+                        <div class="property-label">Regla de validación</div>
+                        <div class="property-value">
+                            <input type="text" id="precio-rule" 
+                                value="${validations.productos.precio.rule}"
+                                onchange="validations.productos.precio.rule = this.value">
+                        </div>
+                    </div>
+                    <div class="property-row">
+                        <div class="property-label">Texto de validación</div>
+                        <div class="property-value">
+                            <textarea id="precio-message"
+                                onchange="validations.productos.precio.message = this.value">${validations.productos.precio.message}</textarea>
+                        </div>
+                    </div>
+                    <div class="property-row">
+                        <div class="property-label">Requerido</div>
+                        <div class="property-value">
+                            <select><option>No</option><option>Sí</option></select>
+                        </div>
+                    </div>
+                `;
+                html += `</div><div class="help-text">💡 Configure la regla de validación para que el precio sea mayor que cero (>0)</div>`;
+            }
+            else if (table === 'productos' && field === 'stock') {
+                html += `
+                    <div class="property-row">
+                        <div class="property-label">Tamaño del campo</div>
+                        <div class="property-value"><input type="text" value="Entero largo" readonly></div>
+                    </div>
+                    <div class="property-row">
+                        <div class="property-label">Regla de validación</div>
+                        <div class="property-value">
+                            <input type="text" id="stock-rule"
+                                value="${validations.productos.stock.rule}"
+                                onchange="validations.productos.stock.rule = this.value">
+                        </div>
+                    </div>
+                    <div class="property-row">
+                        <div class="property-label">Texto de validación</div>
+                        <div class="property-value">
+                            <textarea id="stock-message"
+                                onchange="validations.productos.stock.message = this.value">${validations.productos.stock.message}</textarea>
+                        </div>
+                    </div>
+                    <div class="property-row">
+                        <div class="property-label">Requerido</div>
+                        <div class="property-value">
+                            <select><option>No</option><option>Sí</option></select>
+                        </div>
+                    </div>
+                `;
+                html += `</div><div class="help-text">💡 Configure la regla de validación para que el stock sea mayor o igual a cero (>=0)</div>`;
+            }
+            else if (table === 'productos' && field === 'codigo') {
+                html += `
+                    <div class="property-row">
+                        <div class="property-label">Tamaño del campo</div>
+                        <div class="property-value"><input type="text" value="255"></div>
+                    </div>
+                    <div class="property-row">
+                        <div class="property-label">Indexado</div>
+                        <div class="property-value">
+                            <select id="codigo-indexed" onchange="validations.productos.codigo.indexed = this.value">
+                                <option value="" ${validations.productos.codigo.indexed === '' ? 'selected' : ''}>No</option>
+                                <option value="duplicados" ${validations.productos.codigo.indexed === 'duplicados' ? 'selected' : ''}>Sí (con duplicados)</option>
+                                <option value="sin_duplicados" ${validations.productos.codigo.indexed === 'sin_duplicados' ? 'selected' : ''}>Sí (sin duplicados)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="property-row">
+                        <div class="property-label">Requerido</div>
+                        <div class="property-value">
+                            <select><option>No</option><option>Sí</option></select>
+                        </div>
+                    </div>
+                `;
+                html += `</div><div class="help-text">💡 Configure el campo como Indexado: Sí (sin duplicados) para evitar códigos repetidos</div>`;
+            }
+            else if (table === 'clientes' && field === 'email') {
+                html += `
+                    <div class="property-row">
+                        <div class="property-label">Tamaño del campo</div>
+                        <div class="property-value"><input type="text" value="255"></div>
+                    </div>
+                    <div class="property-row">
+                        <div class="property-label">Máscara de entrada</div>
+                        <div class="property-value">
+                            <input type="text" id="email-mask"
+                                value="${validations.clientes.email.inputMask}"
+                                onchange="validations.clientes.email.inputMask = this.value">
+                        </div>
+                    </div>
+                    <div class="property-row">
+                        <div class="property-label">Requerido</div>
+                        <div class="property-value">
+                            <select id="email-required" onchange="validations.clientes.email_required.required = this.value === 'Sí'">
+                                <option value="No" ${!validations.clientes.email_required.required ? 'selected' : ''}>No</option>
+                                <option value="Sí" ${validations.clientes.email_required.required ? 'selected' : ''}>Sí</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+                html += `</div><div class="help-text">💡 Configure una máscara de entrada para validar el formato de email y márquelo como Requerido</div>`;
+            }
+            else if (table === 'clientes' && field === 'telefono') {
+                html += `
+                    <div class="property-row">
+                        <div class="property-label">Tamaño del campo</div>
+                        <div class="property-value"><input type="text" value="255"></div>
+                    </div>
+                    <div class="property-row">
+                        <div class="property-label">Máscara de entrada</div>
+                        <div class="property-value">
+                            <input type="text" id="telefono-mask"
+                                value="${validations.clientes.telefono.inputMask}"
+                                onchange="validations.clientes.telefono.inputMask = this.value">
+                        </div>
+                    </div>
+                    <div class="property-row">
+                        <div class="property-label">Requerido</div>
+                        <div class="property-value">
+                            <select><option>No</option><option>Sí</option></select>
+                        </div>
+                    </div>
+                `;
+                html += `</div><div class="help-text">💡 Configure la máscara de entrada como: (###) ###-#### donde # representa un dígito</div>`;
+            }
+            else if (table === 'clientes' && field === 'nombre') {
+                html += `
+                    <div class="property-row">
+                        <div class="property-label">Tamaño del campo</div>
+                        <div class="property-value"><input type="text" value="255"></div>
+                    </div>
+                    <div class="property-row">
+                        <div class="property-label">Requerido</div>
+                        <div class="property-value">
+                            <select id="nombre-required" onchange="validations.clientes.nombre.required = this.value === 'Sí'">
+                                <option value="No" ${!validations.clientes.nombre.required ? 'selected' : ''}>No</option>
+                                <option value="Sí" ${validations.clientes.nombre.required ? 'selected' : ''}>Sí</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+                html += `</div><div class="help-text">💡 Marque este campo como Requerido para que sea obligatorio</div>`;
+            }
+            else if (table === 'ventas' && field === 'fecha') {
+                html += `
+                    <div class="property-row">
+                        <div class="property-label">Formato</div>
+                        <div class="property-value"><input type="text" value="Fecha corta"></div>
+                    </div>
+                    <div class="property-row">
+                        <div class="property-label">Regla de validación</div>
+                        <div class="property-value">
+                            <input type="text" id="fecha-rule"
+                                value="${validations.ventas.fecha.rule}"
+                                onchange="validations.ventas.fecha.rule = this.value">
+                        </div>
+                    </div>
+                    <div class="property-row">
+                        <div class="property-label">Texto de validación</div>
+                        <div class="property-value">
+                            <textarea id="fecha-message"
+                                onchange="validations.ventas.fecha.message = this.value">${validations.ventas.fecha.message}</textarea>
+                        </div>
+                    </div>
+                    <div class="property-row">
+                        <div class="property-label">Requerido</div>
+                        <div class="property-value">
+                            <select><option>No</option><option>Sí</option></select>
+                        </div>
+                    </div>
+                `;
+                html += `</div><div class="help-text">💡 Configure la regla de validación como <=Date() para evitar fechas futuras</div>`;
+            }
+            else if (table === 'ventas' && field === 'total') {
+                html += `
+                    <div class="property-row">
+                        <div class="property-label">Formato</div>
+                        <div class="property-value"><input type="text" value="Moneda"></div>
+                    </div>
+                    <div class="property-row">
+                        <div class="property-label">Regla de validación</div>
+                        <div class="property-value">
+                            <input type="text" id="total-rule"
+                                value="${validations.ventas.total.rule}"
+                                onchange="validations.ventas.total.rule = this.value">
+                        </div>
+                    </div>
+                    <div class="property-row">
+                        <div class="property-label">Texto de validación</div>
+                        <div class="property-value">
+                            <textarea id="total-message"
+                                onchange="validations.ventas.total.message = this.value">${validations.ventas.total.message}</textarea>
+                        </div>
+                    </div>
+                    <div class="property-row">
+                        <div class="property-label">Requerido</div>
+                        <div class="property-value">
+                            <select><option>No</option><option>Sí</option></select>
+                        </div>
+                    </div>
+                `;
+                html += `</div><div class="help-text">💡 Configure la regla de validación para que el total sea mayor que cero (>0)</div>`;
+            }
+            else {
+                html += `
+                    <div class="property-row">
+                        <div class="property-label">Tamaño del campo</div>
+                        <div class="property-value"><input type="text" value="255" readonly></div>
+                    </div>
+                    <div class="property-row">
+                        <div class="property-label">Requerido</div>
+                        <div class="property-value">
+                            <select><option>No</option><option>Sí</option></select>
+                        </div>
+                    </div>
+                </div>
+                <div class="help-text">ℹ️ Este campo no requiere validaciones específicas para esta práctica</div>
+                `;
+            }
+
+            propsDiv.innerHTML = html;
+        }
+
+        // FUNCIONES PARA GUARDAR VALIDACIONES
+        function saveValidationProductos() {
+            let message = '';
+            let success = false;
+            
+            if (currentField === 'precio') {
+                const rule = document.getElementById('precio-rule').value;
+                const msg = document.getElementById('precio-message').value;
+                if (rule && msg) {
+                    validations.productos.precio.rule = rule;
+                    validations.productos.precio.message = msg;
+                    message = '✅ Validación de Precio guardada correctamente';
+                    success = true;
+                } else {
+                    message = '⚠️ Debe completar la regla y el mensaje de validación';
+                }
+            } else if (currentField === 'stock') {
+                const rule = document.getElementById('stock-rule').value;
+                const msg = document.getElementById('stock-message').value;
+                if (rule && msg) {
+                    validations.productos.stock.rule = rule;
+                    validations.productos.stock.message = msg;
+                    message = '✅ Validación de Stock guardada correctamente';
+                    success = true;
+                } else {
+                    message = '⚠️ Debe completar la regla y el mensaje de validación';
+                }
+            } else if (currentField === 'codigo') {
+                const indexed = document.getElementById('codigo-indexed').value;
+                if (indexed) {
+                    validations.productos.codigo.indexed = indexed;
+                    message = '✅ Propiedad de Código guardada correctamente';
+                    success = true;
+                } else {
+                    message = '⚠️ Debe seleccionar una opción de indexado';
+                }
+            }
+            
+            showSaveMessage(message, success);
+        }
+        
+        function saveValidationClientes() {
+            let message = '';
+            let success = false;
+            
+            if (currentField === 'email') {
+                const mask = document.getElementById('email-mask').value;
+                const required = document.getElementById('email-required').value;
+                if (mask) {
+                    validations.clientes.email.inputMask = mask;
+                    validations.clientes.email_required.required = required === 'Sí';
+                    message = '✅ Validación de Email guardada correctamente';
+                    success = true;
+                } else {
+                    message = '⚠️ Debe configurar la máscara de entrada';
+                }
+            } else if (currentField === 'telefono') {
+                const mask = document.getElementById('telefono-mask').value;
+                if (mask) {
+                    validations.clientes.telefono.inputMask = mask;
+                    message = '✅ Validación de Teléfono guardada correctamente';
+                    success = true;
+                } else {
+                    message = '⚠️ Debe configurar la máscara de entrada';
+                }
+            } else if (currentField === 'nombre') {
+                const required = document.getElementById('nombre-required').value;
+                validations.clientes.nombre.required = required === 'Sí';
+                message = '✅ Propiedad de Nombre guardada correctamente';
+                success = true;
+            }
+            
+            showSaveMessage(message, success);
+        }
+        
+        function saveValidationVentas() {
+            let message = '';
+            let success = false;
+            
+            if (currentField === 'fecha') {
+                const rule = document.getElementById('fecha-rule').value;
+                const msg = document.getElementById('fecha-message').value;
+                if (rule && msg) {
+                    validations.ventas.fecha.rule = rule;
+                    validations.ventas.fecha.message = msg;
+                    message = '✅ Validación de Fecha guardada correctamente';
+                    success = true;
+                } else {
+                    message = '⚠️ Debe completar la regla y el mensaje de validación';
+                }
+            } else if (currentField === 'total') {
+                const rule = document.getElementById('total-rule').value;
+                const msg = document.getElementById('total-message').value;
+                if (rule && msg) {
+                    validations.ventas.total.rule = rule;
+                    validations.ventas.total.message = msg;
+                    message = '✅ Validación de Total guardada correctamente';
+                    success = true;
+                } else {
+                    message = '⚠️ Debe completar la regla y el mensaje de validación';
+                }
+            }
+            
+            showSaveMessage(message, success);
+        }
+        
+        function showSaveMessage(message, success) {
+            const messageDiv = document.createElement('div');
+            messageDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 25px;
+                background: ${success ? '#2f9e44' : '#c92a2a'};
+                color: white;
+                border-radius: 5px;
+                font-weight: 600;
+                font-size: 14px;
+                z-index: 10000;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                animation: slideInRight 0.3s ease;
+            `;
+            messageDiv.textContent = message;
+            document.body.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => document.body.removeChild(messageDiv), 300);
+            }, 3000);
+        }
+
+        // FUNCIONES DE PRUEBA - PRODUCTOS
+        function testProductos() {
+            const codigo = document.getElementById('test-prod-codigo').value.trim();
+            const nombre = document.getElementById('test-prod-nombre').value.trim();
+            const precio = parseFloat(document.getElementById('test-prod-precio').value);
+            const stock = parseInt(document.getElementById('test-prod-stock').value);
+            const msg = document.getElementById('msg-productos');
+
+            let errors = [];
+            let validacionesCorrectas = 0;
+
+            // Validar precio
+            const precioRule = validations.productos.precio.rule.trim();
+            const precioMsg = validations.productos.precio.message.trim();
+            
+            if (precioRule === '>0' && precioMsg.toLowerCase().includes('precio') && precioMsg.toLowerCase().includes('mayor')) {
+                if (precio <= 0 || isNaN(precio)) {
+                    errors.push(`❌ ${precioMsg}`);
+                    if (!validations.productos.precio.tested) {
+                        validations.productos.precio.tested = true;
+                        validacionesCorrectas++;
+                    }
+                }
+            } else {
+                errors.push('⚠️ La regla de validación del precio no está configurada correctamente');
+            }
+
+            // Validar stock
+            const stockRule = validations.productos.stock.rule.trim();
+            const stockMsg = validations.productos.stock.message.trim();
+            
+            if (stockRule === '>=0' && stockMsg.toLowerCase().includes('stock') && stockMsg.toLowerCase().includes('negativo')) {
+                if (stock < 0 || isNaN(stock)) {
+                    errors.push(`❌ ${stockMsg}`);
+                    if (!validations.productos.stock.tested) {
+                        validations.productos.stock.tested = true;
+                        validacionesCorrectas++;
+                    }
+                }
+            } else {
+                errors.push('⚠️ La regla de validación del stock no está configurada correctamente');
+            }
+
+            // Validar código único
+            const codigoIndexed = validations.productos.codigo.indexed;
+            
+            if (codigoIndexed === 'sin_duplicados') {
+                if (existingCodes.includes(codigo)) {
+                    errors.push(`❌ El código "${codigo}" ya existe. Los códigos deben ser únicos.`);
+                    if (!validations.productos.codigo.tested) {
+                        validations.productos.codigo.tested = true;
+                        validacionesCorrectas++;
+                    }
+                }
+            } else {
+                errors.push('⚠️ El campo código no está configurado como Indexado (sin duplicados)');
+            }
+
+            if (errors.length > 0) {
+                msg.className = 'validation-message error show';
+                msg.innerHTML = `<h4>Errores de validación detectados:</h4><p>${errors.join('<br>')}</p>`;
+                if (validacionesCorrectas > 0) {
+                    msg.innerHTML += `<p style="margin-top: 10px;">✅ ¡Excelente! Las validaciones están funcionando correctamente.</p>`;
+                }
+            } else {
+                msg.className = 'validation-message success show';
+                msg.innerHTML = `<h4>✓ Datos válidos</h4><p>Todos los datos cumplen con las validaciones configuradas.</p>`;
+            }
+
+            updateProgress();
+        }
+
+        function clearProductos() {
+            document.getElementById('test-prod-codigo').value = '';
+            document.getElementById('test-prod-nombre').value = '';
+            document.getElementById('test-prod-precio').value = '';
+            document.getElementById('test-prod-stock').value = '';
+            document.getElementById('msg-productos').className = 'validation-message';
+        }
+
+        // FUNCIONES DE PRUEBA - CLIENTES
+        function testClientes() {
+            const nombre = document.getElementById('test-cli-nombre').value.trim();
+            const apellido = document.getElementById('test-cli-apellido').value.trim();
+            const email = document.getElementById('test-cli-email').value.trim();
+            const telefono = document.getElementById('test-cli-telefono').value.trim();
+            const msg = document.getElementById('msg-clientes');
+
+            let errors = [];
+            let validacionesCorrectas = 0;
+
+            // Validar email formato
+            const emailMask = validations.clientes.email.inputMask.trim();
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (emailMask.toLowerCase().includes('email') || emailMask.includes('@')) {
+                if (!emailRegex.test(email)) {
+                    errors.push('❌ El email no tiene un formato válido. Debe incluir @ y un dominio.');
+                    if (!validations.clientes.email.tested) {
+                        validations.clientes.email.tested = true;
+                        validacionesCorrectas++;
+                    }
+                }
+            } else {
+                errors.push('⚠️ La máscara de entrada del email no está configurada correctamente');
+            }
+
+            // Validar teléfono formato
+            const telefonoMask = validations.clientes.telefono.inputMask.trim();
+            const telefonoRegex = /^\(\d{3}\) \d{3}-\d{4}$/;
+            
+            if (telefonoMask === '(###) ###-####' || telefonoMask.includes('###')) {
+                if (!telefonoRegex.test(telefono)) {
+                    errors.push('❌ El teléfono debe tener el formato: (###) ###-####');
+                    if (!validations.clientes.telefono.tested) {
+                        validations.clientes.telefono.tested = true;
+                        validacionesCorrectas++;
+                    }
+                }
+            } else {
+                errors.push('⚠️ La máscara de entrada del teléfono no está configurada como (###) ###-####');
+            }
+
+            // Validar campos obligatorios
+            if (validations.clientes.nombre.required) {
+                if (!nombre) {
+                    errors.push('❌ El nombre es obligatorio');
+                    if (!validations.clientes.nombre.tested) {
+                        validations.clientes.nombre.tested = true;
+                        validacionesCorrectas++;
+                    }
+                }
+            } else {
+                errors.push('⚠️ El campo nombre no está marcado como Requerido');
+            }
+
+            if (validations.clientes.email_required.required) {
+                if (!email) {
+                    errors.push('❌ El email es obligatorio');
+                    if (!validations.clientes.email_required.tested) {
+                        validations.clientes.email_required.tested = true;
+                        validacionesCorrectas++;
+                    }
+                }
+            } else {
+                errors.push('⚠️ El campo email no está marcado como Requerido');
+            }
+
+            if (errors.length > 0) {
+                msg.className = 'validation-message error show';
+                msg.innerHTML = `<h4>Errores de validación detectados:</h4><p>${errors.join('<br>')}</p>`;
+                if (validacionesCorrectas > 0) {
+                    msg.innerHTML += `<p style="margin-top: 10px;">✅ ¡Excelente! Las validaciones están funcionando correctamente.</p>`;
+                }
+            } else {
+                msg.className = 'validation-message success show';
+                msg.innerHTML = `<h4>✓ Datos válidos</h4><p>Todos los datos cumplen con las validaciones configuradas.</p>`;
+            }
+
+            updateProgress();
+        }
+
+        function clearClientes() {
+            document.getElementById('test-cli-nombre').value = '';
+            document.getElementById('test-cli-apellido').value = '';
+            document.getElementById('test-cli-email').value = '';
+            document.getElementById('test-cli-telefono').value = '';
+            document.getElementById('msg-clientes').className = 'validation-message';
+        }
+
+        // FUNCIONES DE PRUEBA - VENTAS
+        function testVentas() {
+            const fecha = document.getElementById('test-ven-fecha').value;
+            const total = parseFloat(document.getElementById('test-ven-total').value);
+            const msg = document.getElementById('msg-ventas');
+
+            let errors = [];
+            let validacionesCorrectas = 0;
+
+            // Validar fecha
+            const fechaRule = validations.ventas.fecha.rule.trim();
+            const fechaMsg = validations.ventas.fecha.message.trim();
+            
+            if (fechaRule === '<=Date()' && fechaMsg.toLowerCase().includes('futura')) {
+                const hoy = new Date();
+                hoy.setHours(0, 0, 0, 0);
+                const fechaIngresada = new Date(fecha + 'T00:00:00');
+                
+                if (fechaIngresada > hoy) {
+                    errors.push(`❌ ${fechaMsg}`);
+                    if (!validations.ventas.fecha.tested) {
+                        validations.ventas.fecha.tested = true;
+                        validacionesCorrectas++;
+                    }
+                }
+            } else {
+                errors.push('⚠️ La regla de validación de la fecha no está configurada como <=Date()');
+            }
+
+            // Validar total
+            const totalRule = validations.ventas.total.rule.trim();
+            const totalMsg = validations.ventas.total.message.trim();
+            
+            if (totalRule === '>0' && totalMsg.toLowerCase().includes('total') && totalMsg.toLowerCase().includes('mayor')) {
+                if (total <= 0 || isNaN(total)) {
+                    errors.push(`❌ ${totalMsg}`);
+                    if (!validations.ventas.total.tested) {
+                        validations.ventas.total.tested = true;
+                        validacionesCorrectas++;
+                    }
+                }
+            } else {
+                errors.push('⚠️ La regla de validación del total no está configurada correctamente');
+            }
+
+            if (errors.length > 0) {
+                msg.className = 'validation-message error show';
+                msg.innerHTML = `<h4>Errores de validación detectados:</h4><p>${errors.join('<br>')}</p>`;
+                if (validacionesCorrectas > 0) {
+                    msg.innerHTML += `<p style="margin-top: 10px;">✅ ¡Excelente! Las validaciones están funcionando correctamente.</p>`;
+                }
+            } else {
+                msg.className = 'validation-message success show';
+                msg.innerHTML = `<h4>✓ Datos válidos</h4><p>Todos los datos cumplen con las validaciones configuradas.</p>`;
+            }
+
+            updateProgress();
+        }
+
+        function clearVentas() {
+            document.getElementById('test-ven-fecha').value = '';
+            document.getElementById('test-ven-total').value = '';
+            document.getElementById('msg-ventas').className = 'validation-message';
+        }
+
+        // ACTUALIZAR PROGRESO
+        function updateProgress() {
+            let completed = 0;
+            const total = 8;
+
+            if (validations.productos.precio.tested) completed++;
+            if (validations.productos.stock.tested) completed++;
+            if (validations.productos.codigo.tested) completed++;
+            if (validations.clientes.email.tested) completed++;
+            if (validations.clientes.telefono.tested) completed++;
+            if (validations.clientes.nombre.tested) completed++;
+            if (validations.clientes.email_required.tested) completed++;
+            if (validations.ventas.fecha.tested) completed++;
+            if (validations.ventas.total.tested) completed++;
+
+            const percentage = (completed / total) * 100;
+            document.getElementById('mainProgress').style.width = percentage + '%';
+            document.getElementById('progressText').textContent = `${completed}/${total} completadas`;
+        }
+
+        // MOSTRAR RESULTADOS
+        function showResults() {
+            const completed = [
+                validations.productos.precio.tested,
+                validations.productos.stock.tested,
+                validations.productos.codigo.tested,
+                validations.clientes.email.tested,
+                validations.clientes.telefono.tested,
+                validations.clientes.nombre.tested && validations.clientes.email_required.tested,
+                validations.ventas.fecha.tested,
+                validations.ventas.total.tested
+            ].filter(v => v).length;
+
+            const total = 8;
+            const percentage = Math.round((completed / total) * 100);
+            
+            // Calcular nota en base a 2 puntos (cada validación vale 0.25 puntos)
+            const score = (completed / total) * 2;
+            const scoreRounded = Math.round(score * 100) / 100; // Redondear a 2 decimales
+
+            let grade = '';
+            if (scoreRounded >= 1.8) grade = 'A - Excelente';
+            else if (scoreRounded >= 1.6) grade = 'B - Muy Bueno';
+            else if (scoreRounded >= 1.4) grade = 'C - Bueno';
+            else if (scoreRounded >= 1.2) grade = 'D - Aprobado';
+            else grade = 'F - Reprobado';
+
+            document.getElementById('finalScore').textContent = scoreRounded.toFixed(2);
+            document.getElementById('finalGrade').textContent = grade;
+
+            const results = [
+                { name: 'Productos - Precio > 0', passed: validations.productos.precio.tested },
+                { name: 'Productos - Stock >= 0', passed: validations.productos.stock.tested },
+                { name: 'Productos - Código único', passed: validations.productos.codigo.tested },
+                { name: 'Clientes - Formato Email', passed: validations.clientes.email.tested },
+                { name: 'Clientes - Formato Teléfono', passed: validations.clientes.telefono.tested },
+                { name: 'Clientes - Campos Obligatorios', passed: validations.clientes.nombre.tested && validations.clientes.email_required.tested },
+                { name: 'Ventas - Fecha <= Date()', passed: validations.ventas.fecha.tested },
+                { name: 'Ventas - Total > 0', passed: validations.ventas.total.tested }
+            ];
+
+            const grid = document.getElementById('resultsGrid');
+            grid.innerHTML = results.map(r => `
+                <div class="result-item ${r.passed ? 'correct' : 'incorrect'}">
+                    <span>${r.name}</span>
+                    <span class="result-icon">${r.passed ? '✅' : '❌'}</span>
+                </div>
+            `).join('');
+
+            document.getElementById('resultsModal').classList.add('show');
+            document.getElementById('pdfBtn').style.display = 'inline-block';
+        }
+
+        function closeModal() {
+            document.getElementById('resultsModal').classList.remove('show');
+        }
+
+        // GENERAR PDF
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            const score = document.getElementById('finalScore').textContent;
+            const grade = document.getElementById('finalGrade').textContent;
+            
+            const results = [
+                { name: 'Productos - Precio > 0', passed: validations.productos.precio.tested },
+                { name: 'Productos - Stock >= 0', passed: validations.productos.stock.tested },
+                { name: 'Productos - Código único', passed: validations.productos.codigo.tested },
+                { name: 'Clientes - Formato Email', passed: validations.clientes.email.tested },
+                { name: 'Clientes - Formato Teléfono', passed: validations.clientes.telefono.tested },
+                { name: 'Clientes - Campos Obligatorios', passed: validations.clientes.nombre.tested && validations.clientes.email_required.tested },
+                { name: 'Ventas - Fecha <= Date()', passed: validations.ventas.fecha.tested },
+                { name: 'Ventas - Total > 0', passed: validations.ventas.total.tested }
+            ];
+            
+            const completedCount = results.filter(r => r.passed).length;
+            const percentage = Math.round((completedCount / 8) * 100);
+            
+            const fecha = new Date().toLocaleDateString('es-ES', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            
+            // Configurar fuente
+            doc.setFont("helvetica");
+            
+            // Título
+            doc.setFontSize(16);
+            doc.setTextColor(200, 42, 42);
+            doc.text("REPORTE DE EVALUACIÓN", 105, 20, { align: "center" });
+            doc.setFontSize(12);
+            doc.text("Validaciones de Base de Datos en Access", 105, 28, { align: "center" });
+            doc.text("Sistema de Gestión de Ventas", 105, 35, { align: "center" });
+            
+            // Línea divisoria
+            doc.setDrawColor(200, 42, 42);
+            doc.setLineWidth(0.5);
+            doc.line(20, 40, 190, 40);
+            
+            // Calificación
+            doc.setFontSize(14);
+            doc.setTextColor(0, 0, 0);
+            doc.setFont("helvetica", "bold");
+            doc.text("CALIFICACIÓN FINAL:", 20, 52);
+            doc.setFontSize(24);
+            doc.setTextColor(200, 42, 42);
+            doc.text(score + " / 2.00", 105, 52, { align: "center" });
+            
+            doc.setFontSize(12);
+            doc.setTextColor(0, 0, 0);
+            doc.setFont("helvetica", "normal");
+            doc.text("Nivel: " + grade, 105, 62, { align: "center" });
+            
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.text("Fecha: " + fecha, 105, 70, { align: "center" });
+            
+            // Línea divisoria
+            doc.setDrawColor(200, 42, 42);
+            doc.line(20, 75, 190, 75);
+            
+            // Detalle de validaciones
+            doc.setFontSize(12);
+            doc.setTextColor(0, 0, 0);
+            doc.setFont("helvetica", "bold");
+            doc.text("DETALLE DE VALIDACIONES:", 20, 85);
+            
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            let yPos = 95;
+            
+            results.forEach((r, i) => {
+                const status = r.passed ? "CORRECTA" : "PENDIENTE/INCORRECTA";
+                const statusColor = r.passed ? [47, 158, 68] : [200, 42, 42];
+                
+                doc.setTextColor(0, 0, 0);
+                doc.text(`${i + 1}. ${r.name}`, 25, yPos);
+                doc.setTextColor(...statusColor);
+                doc.text(`Estado: ${status}`, 35, yPos + 5);
+                
+                yPos += 12;
+            });
+            
+            // Línea divisoria
+            doc.setDrawColor(200, 42, 42);
+            doc.line(20, yPos + 5, 190, yPos + 5);
+            
+            // Resumen
+            yPos += 15;
+            doc.setFontSize(12);
+            doc.setTextColor(0, 0, 0);
+            doc.setFont("helvetica", "bold");
+            doc.text("RESUMEN:", 20, yPos);
+            
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            yPos += 8;
+            doc.text(`• Total de validaciones: 8`, 25, yPos);
+            yPos += 6;
+            doc.text(`• Validaciones completadas: ${completedCount}`, 25, yPos);
+            yPos += 6;
+            doc.text(`• Porcentaje de acierto: ${percentage}%`, 25, yPos);
+            yPos += 6;
+            doc.text(`• Puntuación obtenida: ${score} puntos de 2.00`, 25, yPos);
+            
+            // Nueva página para la tabla de documentación
+            doc.addPage();
+            
+            // Título de la segunda página
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "bold");
+            doc.text("TABLA DE DOCUMENTACIÓN DE VALIDACIONES", 105, 20, { align: "center" });
+            
+            // Tabla
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "normal");
+            
+            const tableData = [
+                ['Productos', 'precio', 'Regla validación', '>0'],
+                ['Productos', 'stock', 'Regla validación', '>=0'],
+                ['Productos', 'codigo', 'Propiedad', 'Sin duplicados'],
+                ['Clientes', 'email', 'Máscara entrada', 'Formato email'],
+                ['Clientes', 'telefono', 'Máscara entrada', '(###) ###-####'],
+                ['Clientes', 'nombre', 'Propiedad', 'Requerido = Sí'],
+                ['Clientes', 'email', 'Propiedad', 'Requerido = Sí'],
+                ['Ventas', 'fecha', 'Regla validación', '<=Date()'],
+                ['Ventas', 'total', 'Regla validación', '>0']
+            ];
+            
+            // Encabezados de tabla
+            doc.setFont("helvetica", "bold");
+            doc.setFillColor(200, 42, 42);
+            doc.setTextColor(255, 255, 255);
+            doc.rect(20, 30, 170, 8, 'F');
+            doc.text('Tabla', 25, 35);
+            doc.text('Campo', 60, 35);
+            doc.text('Tipo Validación', 95, 35);
+            doc.text('Regla/Propiedad', 140, 35);
+            
+            // Datos de tabla
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(0, 0, 0);
+            let tableY = 43;
+            
+            tableData.forEach((row, index) => {
+                if (index % 2 === 0) {
+                    doc.setFillColor(245, 245, 245);
+                    doc.rect(20, tableY - 5, 170, 8, 'F');
+                }
+                doc.text(row[0], 25, tableY);
+                doc.text(row[1], 60, tableY);
+                doc.text(row[2], 95, tableY);
+                doc.text(row[3], 140, tableY);
+                tableY += 8;
+            });
+            
+            // Observaciones
+            tableY += 10;
+            doc.setFont("helvetica", "bold");
+            doc.text("OBSERVACIONES:", 20, tableY);
+            
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(9);
+            tableY += 8;
+            const observaciones = [
+                "Las validaciones implementadas demuestran comprensión de los mecanismos",
+                "de integridad de datos en Microsoft Access. Las reglas configuradas ayudan",
+                "a mantener la calidad y consistencia de la información en el sistema de",
+                "gestión de ventas.",
+                "",
+                "Este documento certifica la participación del estudiante en la práctica",
+                "de implementación de validaciones en bases de datos Access."
+            ];
+            
+            observaciones.forEach(line => {
+                doc.text(line, 25, tableY);
+                tableY += 5;
+            });
+            
+            // Pie de página
+            doc.setFontSize(8);
+            doc.setTextColor(100, 100, 100);
+            doc.text("Generado automáticamente por el Simulador de Validaciones Access", 105, 280, { align: "center" });
+            
+            // Descargar PDF
+            doc.save(`Evaluacion_Validaciones_BD_${new Date().getTime()}.pdf`);
+        }
+
+        // Inicializar
+        updateProgress();
+    </script>
+</body>
+</html>
